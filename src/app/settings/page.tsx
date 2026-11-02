@@ -72,10 +72,7 @@ export default function SettingsPage() {
       // Keep the cached header user in sync.
       const stored = getStoredUser();
       if (stored) {
-        localStorage.setItem(
-          'sb_user',
-          JSON.stringify({ ...stored, first_name: firstName, last_name: lastName, phone }),
-        );
+       setStoredUser({ ...stored, first_name: firstName, last_name: lastName, phone });
       }
       setSaved(true);
     } catch (err) {
