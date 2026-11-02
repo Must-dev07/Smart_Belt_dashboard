@@ -9,7 +9,7 @@
 import { useEffect, useState } from 'react';
 import Shell from '@/components/Shell';
 import { ErrorBox, Loading, PageTitle } from '@/components/ui';
-import { API_BASE, apiFetch, getStoredUser } from '@/lib/api';
+import { API_BASE, apiFetch, getStoredUser , setStoredUser } from '@/lib/api';
 import type { Doctor, Paginated, UserSummary } from '@/lib/types';
 
 export default function SettingsPage() {
