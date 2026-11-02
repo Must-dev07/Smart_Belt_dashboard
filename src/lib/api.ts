@@ -3,7 +3,7 @@
 /**
  * API client for the Django backend (/api/v1).
  *
- * - Stores JWT pair in localStorage (dashboard is a trusted clinician tool;
+ * - Stores JWT pair in sessionStorage (dashboard is a trusted clinician tool;
  *   tokens are short-lived and refresh rotation revokes old sessions server-side).
  * - Transparently retries ONCE after a silent refresh on 401.
  * - Throws ApiError with parsed body for consistent error surfaces.
@@ -18,6 +18,9 @@ const ACCESS_KEY = 'sb_access';
 const REFRESH_KEY = 'sb_refresh';
 const USER_KEY = 'sb_user';
 
+export function setStoredUser(user: UserSummary) {
+  sessionStorage.setItem(USER_KEY, JSON.stringify(user));
+}
 export class ApiError extends Error {
   status: number;
   body: unknown;
@@ -32,7 +35,7 @@ export class ApiError extends Error {
 
 export function getStoredUser(): UserSummary | null {
   if (typeof window === 'undefined') return null;
-  const raw = localStorage.getItem(USER_KEY);
+  const raw = sessionStorage.getItem(USER_KEY);
   if (!raw) return null;
   try {
     return JSON.parse(raw) as UserSummary;
@@ -42,18 +45,18 @@ export function getStoredUser(): UserSummary | null {
 }
 
 export function isLoggedIn(): boolean {
-  return typeof window !== 'undefined' && !!localStorage.getItem(ACCESS_KEY);
+  return typeof window !== 'undefined' && !!sessionStorage.getItem(ACCESS_KEY);
 }
 
 function saveTokens(pair: { access: string; refresh: string }) {
-  localStorage.setItem(ACCESS_KEY, pair.access);
-  localStorage.setItem(REFRESH_KEY, pair.refresh);
+  sessionStorage.setItem(ACCESS_KEY, pair.access);
+  sessionStorage.setItem(REFRESH_KEY, pair.refresh);
 }
 
 export function clearSession() {
-  localStorage.removeItem(ACCESS_KEY);
-  localStorage.removeItem(REFRESH_KEY);
-  localStorage.removeItem(USER_KEY);
+  sessionStorage.removeItem(ACCESS_KEY);
+  sessionStorage.removeItem(REFRESH_KEY);
+  sessionStorage.removeItem(USER_KEY);
 }
 
 async function parseBody(res: Response): Promise<unknown> {
@@ -66,7 +69,7 @@ async function parseBody(res: Response): Promise<unknown> {
 }
 
 async function refreshOnce(): Promise<boolean> {
-  const refresh = localStorage.getItem(REFRESH_KEY);
+  const refresh = sessionStorage.getItem(REFRESH_KEY);
   if (!refresh) return false;
   const res = await fetch(`${API_BASE}/api/v1/auth/refresh`, {
     method: 'POST',
@@ -87,7 +90,7 @@ export async function apiFetch<T>(
   init: RequestInit = {},
   retry = true,
 ): Promise<T> {
-  const access = typeof window !== 'undefined' ? localStorage.getItem(ACCESS_KEY) : null;
+  const access = typeof window !== 'undefined' ? sessionStorage.getItem(ACCESS_KEY) : null;
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(init.headers as Record<string, string> | undefined),
@@ -118,7 +121,7 @@ export async function login(email: string, password: string): Promise<TokenPair>
   if (!res.ok) throw new ApiError(res.status, await parseBody(res));
   const pair = (await res.json()) as TokenPair;
   saveTokens(pair);
-  localStorage.setItem(USER_KEY, JSON.stringify(pair.user));
+  sessionStorage.setItem(USER_KEY, JSON.stringify(pair.user));
   return pair;
 }
 
@@ -141,7 +144,7 @@ export async function fetchAllPages<T>(basePath: string, maxPages = 100): Promis
 }
 
 export async function logout(): Promise<void> {
-  const refresh = localStorage.getItem(REFRESH_KEY);
+  const refresh = sessionStorage.getItem(REFRESH_KEY);
   try {
     if (refresh) {
       await apiFetch('/api/v1/auth/logout', {
